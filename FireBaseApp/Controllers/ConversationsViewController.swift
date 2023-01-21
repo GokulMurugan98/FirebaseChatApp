@@ -6,14 +6,12 @@
 //
 
 import UIKit
+import Firebase
 
 class ConversationsViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.modalPresentationStyle = .fullScreen
-        self.title = "Chats"
-        navigationItem.hidesBackButton = true
     }
     
 }

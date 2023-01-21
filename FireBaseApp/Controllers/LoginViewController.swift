@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Firebase
 
 class LoginViewController: UIViewController{
     
@@ -13,13 +14,17 @@ class LoginViewController: UIViewController{
     @IBOutlet weak var emailUser: UITextField!
     @IBOutlet weak var passWord: UITextField!
     
+    let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        emailUser.delegate = self
-        passWord.delegate = self
-        emailUser.returnKeyType = .continue
-        passWord.returnKeyType = .continue
-        passWord.isSecureTextEntry = true
+        self.navigationItem.hidesBackButton = true
+        self.navigationItem.title = "Login"
+        emailUser?.delegate = self
+        passWord?.delegate = self
+        emailUser?.returnKeyType = .continue
+        passWord?.returnKeyType = .continue
+        passWord?.isSecureTextEntry = true
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Register",
                                                             style: .done,
                                                             target: self,
@@ -27,18 +32,17 @@ class LoginViewController: UIViewController{
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        let loggedIn = UserDefaults.standard.bool(forKey: "loggedIn")
-        if loggedIn {
-            performSegue(withIdentifier: "conversations", sender: self)
+        if FirebaseAuth.Auth.auth().currentUser != nil {
+            let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
+            let resultViewController = storyBoard.instantiateViewController(withIdentifier: "ConversationsViewController") as! ConversationsViewController
+            self.navigationController?.pushViewController(resultViewController, animated: false)
         }
     }
     
     
     @objc private func didTapRegiser(){
-        let vc = RegisterViewController()
-        vc.modalPresentationStyle = .fullScreen
-        performSegue(withIdentifier: "registerUser", sender: self)
+        let resultViewController = storyBoard.instantiateViewController(withIdentifier: "RegisterViewController") as! RegisterViewController
+        self.navigationController?.pushViewController(resultViewController, animated: true)
     }
     
     
@@ -46,18 +50,25 @@ class LoginViewController: UIViewController{
         emailUser.resignFirstResponder()
         passWord.resignFirstResponder()
         if emailUser.text == nil || passWord.text == nil || passWord.text!.count < 6 {
-            let alert = UIAlertController(title: "Invalid Details",
-                                          message: "Please Check user name and Password and try again",
-                                          preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Dismiss", style: .cancel))
-            present(alert, animated: true)
-        }
-        else if (emailUser.text == "Gokul" && passWord.text == "123456"){
-            emailUser.text = nil
-            passWord.text = nil
-            performSegue(withIdentifier: "conversations", sender: self)
             
+            alert(with: "Invalid Details",
+                  message: "Please Check user name and Password and try again")
         }
+        else {
+            
+            FirebaseAuth.Auth.auth().signIn(withEmail: emailUser.text!, password: passWord.text!){ [weak self] authResult, authError in
+                guard authError == nil else{
+                    self?.alert(with: "Login Unsuccessful",
+                                message: authError!.localizedDescription)
+                    return
+                }
+                guard let vc =  self?.storyBoard.instantiateViewController(withIdentifier: "TabBarController") else {return}
+                vc.modalPresentationStyle = .fullScreen
+                self?.present(vc, animated: true)
+            }
+        }
+        
+        
     }
 }
 
@@ -71,5 +82,14 @@ extension LoginViewController:UITextFieldDelegate{
             LoginButton(self)
         }
         return true
+    }
+    
+    func alert(with title:String, message:String){
+        let alert = UIAlertController(title: title ,
+                                      message: message,
+                                      preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Dismiss", style: .cancel))
+        present(alert, animated: true)
+        
     }
 }
